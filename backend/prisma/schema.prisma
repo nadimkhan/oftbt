@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  telegramId    String   @unique
+  username      String?
+  isPremium     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Mining related fields
+  storageLevel  Int      @default(0)
+  miningSpeed   Int      @default(0)
+  oilDrops      Int      @default(0)
+  lastMiningStart DateTime?
+  lastMiningClaim DateTime?
+
+  // Relationships
+  referredBy    User?    @relation("ReferralRelation", fields: [referrerId], references: [id])
+  referrerId    Int?
+  referrals     User[]   @relation("ReferralRelation")
+  completedTasks UserTask[]
+  
+  @@index([telegramId])
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  reward      Int
+  isDaily     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  completedBy UserTask[]
+}
+
+model UserTask {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  taskId    Int
+  completedAt DateTime @default(now())
+
+  // Relationships
+  user      User     @relation(fields: [userId], references: [id])
+  task      Task     @relation(fields: [taskId], references: [id])
+
+  @@unique([userId, taskId])
+}
+
+model MiningConfig {
+  id                Int      @id @default(autoincrement())
+  maxStorageLevel   Int      @default(15)
+  maxMiningSpeed    Int      @default(15)
+  sessionDuration   Int      @default(10800)  // 3 hours in seconds
+  claimCooldown     Int      @default(28800)  // 8 hours in seconds
+  baseRewardRate    Float    @default(1.0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ReferralConfig {
+  id                    Int      @id @default(autoincrement())
+  normalUserReward      Int      @default(100)    // Oil Drops for referring normal user
+  premiumUserReward     Int      @default(200)    // Oil Drops for referring premium user
+  miningRewardPercent   Float    @default(0.10)   // 10% of referred user's mining
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model UpgradeConfig {
+  id              Int      @id @default(autoincrement())
+  level           Int
+  storageUpgradeCost Int
+  speedUpgradeCost   Int
+  storageCapacity    Int
+  miningSpeedRate    Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([level])
+}
